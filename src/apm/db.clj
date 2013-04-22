@@ -26,7 +26,7 @@
     (let [is-dir (if (= \/ (last fullname)) 1 0)
           ret (exec-raw apmdb ["INSERT IGNORE INTO `ref` ( `fullname`, `parent_id`, `isDir` ) VALUES ( ?, ?, ? )",
                               [fullname parent-id is-dir]] :keys)]
-        (if (map? ret) (ret :GENERATED_KEYS) nil)))
+        (when (map? ret) (ret :GENERATED_KEYS))))
 
 (defn get-reference-id
     "Returns the ref-id associated with the given name, or nil if none is found"
@@ -35,7 +35,7 @@
         (select reference
             (fields [ :id ])
             (where { :fullname fullname }))]
-        (if (empty? ret) nil ((first ret) :id))))
+        (when-not (empty? ret) ((first ret) :id))))
 
 (defn create-reference-tree
     "Creates a reference tree to the given reference name in the database and returns
