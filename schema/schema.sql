@@ -34,8 +34,9 @@ DROP TABLE IF EXISTS `ref`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `ref` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `dir` text NOT NULL,
-  `name` text NOT NULL,
+  `fullname` text NOT NULL,
+  `parent_id` int(10) unsigned DEFAULT NULL,
+  `isDir` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -65,4 +66,4 @@ CREATE TABLE `value` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2013-04-20 22:03:35
+-- Dump completed on 2013-04-22  0:28:27
