@@ -63,3 +63,21 @@
             (values { :ref_id ref-id
                       :value raw-value }))]
         (ret :GENERATED_KEY)))
+
+(defn put-delta-of-value
+    "Given value name and a change for it, gets last value and adds the delta to it, and re-inserts
+    a new value. Returns the new val-id"
+    [fullname delta]
+    (let [ref-id (create-reference-tree fullname)
+          ret
+        (transaction
+            (let [select-ret (select value
+                                (where { :ref_id ref-id })
+                                (fields [ :value ])
+                                (order :id :DESC)
+                                (limit 1))
+                  last-val (if (empty? select-ret) 0 ((first select-ret) :value))]
+            (insert value
+                (values { :ref_id ref-id
+                          :value (+ last-val delta) }))))]
+    (ret :GENERATED_KEY)))
