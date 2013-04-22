@@ -34,11 +34,13 @@ DROP TABLE IF EXISTS `ref`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `ref` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `fullname` text NOT NULL,
+  `fullname` varchar(255) NOT NULL,
   `parent_id` int(10) unsigned DEFAULT NULL,
   `isDir` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `fullname` (`fullname`),
+  UNIQUE KEY `fullname_2` (`fullname`)
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -54,7 +56,7 @@ CREATE TABLE `value` (
   `value` int(11) NOT NULL,
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -66,4 +68,4 @@ CREATE TABLE `value` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2013-04-22  0:28:27
+-- Dump completed on 2013-04-22  3:09:07
