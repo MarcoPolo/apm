@@ -33,7 +33,7 @@
     [fullname]
     (let [ret
         (select reference
-            (fields [ :id ])
+            (fields :id )
             (where { :fullname fullname }))]
         (when-not (empty? ret) ((first ret) :id))))
 
@@ -51,6 +51,20 @@
                 (insert-reference fullname parent-id) ;If it's not there, try and put it (insert-reference returns id)
                 (get-reference-id fullname)))))       ;If something beat us to it (unlikely), get again
 
+(defn get-reference-children
+    "Given a ref-id or a fullname returns a vector of all the children of that reference,
+    if it has any. Although a fullname can be given, a ref-id is preferred as the query
+    for it is more efficient"
+    [fn-id] ;fullname-or-id
+    (-> (select* reference)
+        (fields :id :fullname :isDir )
+        (#(if-not (string? fn-id)
+            (where %1 {:parent_id fn-id})
+            (where %1 {:parent_id (subselect reference
+                                      (fields :id)
+                                      (limit 1)
+                                      (where {:fullname fn-id}))} )))
+        (exec)))
 
 (defn put-raw-value
     "Given value data inserts into the databse and returns the val-id
@@ -73,7 +87,7 @@
         (transaction
             (let [select-ret (select value
                                 (where { :ref_id ref-id })
-                                (fields [ :value ])
+                                (fields :value)
                                 (order :id :DESC)
                                 (limit 1))
                   last-val (if (empty? select-ret) 0 ((first select-ret) :value))]
