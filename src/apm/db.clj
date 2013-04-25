@@ -54,7 +54,10 @@
 (defn get-reference-children
     "Given a ref-id or a fullname returns a vector of all the children of that reference,
     if it has any. Although a fullname can be given, a ref-id is preferred as the query
-    for it is more efficient"
+    for it is more efficient.
+
+    Each reference in the vector takes the form of a map with :id, :fullname, and :isDir
+    keys set"
     [fn-id] ;fullname-or-id
     (-> (select* reference)
         (fields :id :fullname :isDir )
