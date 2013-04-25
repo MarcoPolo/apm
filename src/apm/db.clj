@@ -1,5 +1,6 @@
 (ns apm.db
-    (:use korma.db korma.core))
+    (:use korma.db korma.core)
+    (:require [lamina.core :as lam]))
 
 (defdb apmdb (mysql { :db       "apm"
                       :user     "apm"
@@ -20,7 +21,7 @@
 (defn- path-split [path]
     (rest (re-find #"(.*?)([^\/]*\/?)$" path)))
 
-(defn- insert-reference
+(defn- insert-reference!
     "Inserts and returns the new ref-id, or returns nil if it already existed"
     [fullname parent-id]
     (let [is-dir (if (= \/ (last fullname)) 1 0)
@@ -37,7 +38,7 @@
             (where { :fullname fullname }))]
         (when-not (empty? ret) ((first ret) :id))))
 
-(defn create-reference-tree
+(defn- _create-reference-tree!
     "Creates a reference tree to the given reference name in the database and returns
     the highest ref-id in the tree
 
@@ -46,9 +47,9 @@
     [fullname]
     (when-not (= fullname "")
         (let [[path _] (path-split fullname)
-              parent-id (create-reference-tree path)]
+              parent-id (_create-reference-tree! path)]
             (or (get-reference-id fullname)           ;First try to get the ref-id if it's already there
-                (insert-reference fullname parent-id) ;If it's not there, try and put it (insert-reference returns id)
+                (insert-reference! fullname parent-id) ;If it's not there, try and put it (insert-reference returns id)
                 (get-reference-id fullname)))))       ;If something beat us to it (unlikely), get again
 
 (defn get-reference-children
@@ -69,23 +70,23 @@
                                       (where {:fullname fn-id}))} )))
         (exec)))
 
-(defn put-raw-value
+(defn- _put-raw-value!
     "Given value data inserts into the databse and returns the val-id
 
     This will create the whole reference tree as well, if needed"
     [fullname raw-value]
-    (let [ref-id (create-reference-tree fullname)
+    (let [ref-id (_create-reference-tree! fullname)
           ret
         (insert value
             (values { :ref_id ref-id
                       :value raw-value }))]
         (ret :GENERATED_KEY)))
 
-(defn put-delta-of-value
+(defn- _put-delta-of-value!
     "Given value name and a change for it, gets last value and adds the delta to it, and re-inserts
     a new value. Returns the new val-id"
     [fullname delta]
-    (let [ref-id (create-reference-tree fullname)
+    (let [ref-id (_create-reference-tree! fullname)
           ret
         (transaction
             (let [select-ret (select value
@@ -98,3 +99,30 @@
                 (values { :ref_id ref-id
                           :value (+ last-val delta) }))))]
     (ret :GENERATED_KEY)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Workers so mysql doesn't shit a brick
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def work-queue (lam/channel))
+
+(defmacro undtest [ work-fn ]
+    `(symbol (str "_" '~work-fn)))
+
+(defmacro defworkfn [ work-fn ]
+    `(defn ~work-fn [ & args# ]
+        (let [prm# (promise)]
+            (lam/enqueue work-queue [ (symbol (str "_" '~work-fn)) args# prm#])
+            @prm#)))
+
+(defworkfn create-reference-tree!)
+(defworkfn put-raw-value!)
+(defworkfn put-delta-of-value!)
+
+(defn do-work []
+    (let [[fun args prm] @(lam/read-channel work-queue)]
+        fun ;No idea why this needs to be here....
+        (deliver prm (apply (resolve fun) args))))
+
+;One worker for now
+(future (doall (repeatedly do-work)))

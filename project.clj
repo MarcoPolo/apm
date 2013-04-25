@@ -5,4 +5,5 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.0"]
                  [korma "0.3.0-RC5"]
+                 [lamina "0.5.0-beta15"]
                  [mysql/mysql-connector-java "5.1.6"]])
