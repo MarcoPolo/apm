@@ -1,11 +1,46 @@
 (ns apm.handler
-  (:use compojure.core)
-  (:require [compojure.handler :as handler]
-            [compojure.route :as route]))
+  (:use ring.adapter.jetty
+        ring.middleware.reload)
+  (:require [clojure.string :as s]))
 
-(defroutes app-routes
-  (GET "/" [] "Hello World")
-  (route/not-found "Not Found"))
+(def data (atom {}))
 
-(def app
-  (handler/site app-routes))
+(re-matches #":.*" ":asdf")
+
+
+;(retrieve-data ["dsf"])
+
+(defn retrieve-data [uri-parts]
+  (get-in 
+    @data
+    (map keyword uri-parts) 
+    []))
+
+(defn str-keyword? [string]
+  (nil? (re-matches #":.*" string)))
+
+(.getTime (java.util.Date.) )
+(.. java.util.Date. )
+
+
+(defn work-with-data [uri-parts]
+  (let [reference (map keyword (take-while str-keyword? uri-parts))
+        operations (drop-while str-keyword? uri-parts)]))
+
+
+(defn handler [request]
+  (let [uri-parts (rest (s/split (:uri request) #"/"))
+        request-method (:request-method request)]
+    {:status 200
+        :headers {"Content-Type" "text/html"}
+        :body (str "Hello World" uri-parts request-method)}))
+
+(def app 
+  (wrap-reload #'handler))
+
+(comment 
+  (def server (run-jetty #'app {:port 3000}))
+  server
+)
+
+
