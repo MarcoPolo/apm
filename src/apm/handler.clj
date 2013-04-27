@@ -3,37 +3,36 @@
         ring.middleware.reload)
   (:require [clojure.string :as s]))
 
-(def data (atom {}))
-
-(re-matches #":.*" ":asdf")
-
-
-;(retrieve-data ["dsf"])
-
-(defn retrieve-data [uri-parts]
-  (get-in 
-    @data
-    (map keyword uri-parts) 
-    []))
-
 (defn str-keyword? [string]
-  (nil? (re-matches #":.*" string)))
+  (re-matches #"^:.*" string))
 
-(.getTime (java.util.Date.) )
-(.. java.util.Date. )
+(def not-str-keyword? (complement str-keyword?))
 
+(defn str-keyword->keyword [string]
+  (keyword (s/replace string #"^:" "")))
 
-(defn work-with-data [uri-parts]
-  (let [reference (map keyword (take-while str-keyword? uri-parts))
-        operations (drop-while str-keyword? uri-parts)]))
-
+(defn parse-uri 
+  "Function that takes in the uri parts and will split them up, and convert them to keywords"
+  [uri-parts]
+  (let [reference (map keyword (take-while not-str-keyword? uri-parts))
+        ;; Get the operations and turn the first element into a keyword
+        operations (->
+                      (drop-while not-str-keyword? uri-parts)
+                      (vec)
+                      (update-in [0] str-keyword->keyword))]
+    [reference operations]))
 
 (defn handler [request]
   (let [uri-parts (rest (s/split (:uri request) #"/"))
         request-method (:request-method request)]
     {:status 200
         :headers {"Content-Type" "text/html"}
-        :body (str "Hello World" uri-parts request-method)}))
+        :body (str 
+                "The raw URI is: " uri-parts 
+                "<br/> "
+                "The Request method was: " request-method 
+                "<br/> "
+                "The parsed uri is: " (parse-uri uri-parts))}))
 
 (def app 
   (wrap-reload #'handler))
