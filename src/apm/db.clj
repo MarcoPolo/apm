@@ -2,6 +2,32 @@
     (:use korma.db korma.core)
     (:require [lamina.core :as lam]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Workers so mysql doesn't shit a brick
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def work-queue (lam/channel))
+
+(defmacro defworker [ fn-name doc args & body ]
+    (let [und-fn-name (symbol (str "_" fn-name))]
+        `(do
+            (defn ~und-fn-name ~args ~@body)
+            (defn ~fn-name ~doc ~args
+                (let [prm# (promise)]
+                    (lam/enqueue work-queue [ ~und-fn-name ~args prm#])
+                    @prm#)))))
+
+(defn do-work [somework]
+    (let [[fun args prm] somework
+           answer (apply fun args)]
+        (deliver prm answer)))
+
+(lam/receive-all work-queue do-work)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Actual db stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defdb apmdb (mysql { :db       "apm"
                       :user     "apm"
                       :password "need more pylons" }))
@@ -38,7 +64,7 @@
             (where { :fullname fullname }))]
         (when-not (empty? ret) ((first ret) :id))))
 
-(defn- _create-reference-tree!
+(defworker create-reference-tree!
     "Creates a reference tree to the given reference name in the database and returns
     the highest ref-id in the tree
 
@@ -70,7 +96,7 @@
                                       (where {:fullname fn-id}))} )))
         (exec)))
 
-(defn- _put-raw-value!
+(defworker put-raw-value!
     "Given value data inserts into the databse and returns the val-id
 
     This will create the whole reference tree as well, if needed"
@@ -82,7 +108,7 @@
                       :value raw-value }))]
         (ret :GENERATED_KEY)))
 
-(defn- _put-delta-of-value!
+(defworker put-delta-of-value!
     "Given value name and a change for it, gets last value and adds the delta to it, and re-inserts
     a new value. Returns the new val-id"
     [fullname delta]
@@ -100,29 +126,3 @@
                           :value (+ last-val delta) }))))]
     (ret :GENERATED_KEY)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Workers so mysql doesn't shit a brick
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def work-queue (lam/channel))
-
-(defmacro undtest [ work-fn ]
-    `(symbol (str "_" '~work-fn)))
-
-(defmacro defworkfn [ work-fn ]
-    `(defn ~work-fn [ & args# ]
-        (let [prm# (promise)]
-            (lam/enqueue work-queue [ (symbol (str "_" '~work-fn)) args# prm#])
-            @prm#)))
-
-(defworkfn create-reference-tree!)
-(defworkfn put-raw-value!)
-(defworkfn put-delta-of-value!)
-
-(defn do-work []
-    (let [[fun args prm] @(lam/read-channel work-queue)]
-        fun ;No idea why this needs to be here....
-        (deliver prm (apply (resolve fun) args))))
-
-;One worker for now
-(future (doall (repeatedly do-work)))
