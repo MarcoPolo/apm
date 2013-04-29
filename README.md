@@ -46,7 +46,7 @@ they were received, which is later used for graphing.
 
 To post the absolute value `50`:
 ```
-> POST /dir/ref1/50
+> POST /dir/ref1/:abs/50
 ok
 ```
 
@@ -109,7 +109,7 @@ assumed to be 100. Note that `<offset>` refers to offset from the most recent va
 
 ## Example
 ```
-> POST /dir/ref1/5
+> POST /dir/ref1/:abs/5
 ok
 
 > GET /dir/ref1
