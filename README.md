@@ -122,7 +122,7 @@ ok
 [ { "ts":..., "val":5 },
   { "ts":..., "val":6 } ]
   
-> POST /dir/ref1/6
+> POST /dir/ref1/:abs/6
 ok
 
 > GET /dir/ref1

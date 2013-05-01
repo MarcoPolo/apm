@@ -10,6 +10,11 @@
 
 (defn- debug-dispatch  [ & args ] {:error false :result args})
 
+(defn- do-incdec
+    [ref-name mult potential-delta]
+    (let [delta (if (empty? potential-delta) 1 (first potential-delta))]
+        (db/put-delta-of-value! ref-name (* mult (Integer/valueOf delta)))))
+
 (def dispatch-map {
     ;TODO the get methods need stuff in apm.db to be implemented
     ":get_:nomod"   debug-dispatch
@@ -17,15 +22,15 @@
     ":get_:by-seq"  debug-dispatch
 
     ":post_:abs"    (fn [req-type ref-name req-mod abs-val]
-                        (put-raw-value! ref-name abs-val)
+                        (db/put-raw-value! ref-name (Integer/valueOf abs-val))
                         {:error false})
 
-    ":post_:inc"    (fn [req-type ref-name req-mod delta-val]
-                        (put-delta-of-value! ref-name delta-val)
+    ":post_:inc"    (fn [req-type ref-name req-mod & delta-val]
+                        (do-incdec ref-name 1 delta-val)
                         {:error false})
 
-    ":post_:dec"    (fn [req-type ref-name req-mod delta-val]
-                        (put-delta-of-value! ref-name (* -1 delta-val))
+    ":post_:dec"    (fn [req-type ref-name req-mod & delta-val]
+                        (do-incdec ref-name -1 delta-val)
                         {:error false})
 })
 
