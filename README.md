@@ -95,7 +95,8 @@ Boundaries are specified either by date or sequence number. To specify by date:
 ...
 ```
 
-`<starting>` and `<ending>` are both strings that are parseable by a standard date-parsing library (yay ambiguity!).
+`<starting>` and `<ending>` are both strings that are unix timestamps. `<starting>` is required, if
+`<ending>` is ommitted there is assumed to be no upper limit.
 
 To specify by sequence number:
 ```

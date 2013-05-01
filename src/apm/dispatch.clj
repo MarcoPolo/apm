@@ -1,4 +1,5 @@
 (ns apm.dispatch
+    (:use date-clj)
     (:require [apm.db :as db]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -15,11 +16,35 @@
     (let [delta (if (empty? potential-delta) 1 (first potential-delta))]
         (db/put-delta-of-value! ref-name (* mult (Integer/valueOf delta)))))
 
+(defn- date->ts [d]  (int (/ (.getTime d) 1000)))
+(defn- ts->date [ts] (date (* (Integer/valueOf ts) 1000)))
+(defn- format-get-results [res] (map #(assoc %1 :ts (date->ts (%1 :ts))) res))
+
 (def dispatch-map {
-    ;TODO the get methods need stuff in apm.db to be implemented
-    ":get_:nomod"   debug-dispatch
-    ":get_:by-date" debug-dispatch
-    ":get_:by-seq"  debug-dispatch
+
+    ":get_:nomod"   (fn [req-type ref-name req-mod]
+                        (let [real-ref-name (if (= "/" ref-name) "/" (str ref-name "/"))]
+                            { :error false
+                              :results (db/get-dir-children real-ref-name) }))
+
+    ":get_:all"     (fn [req-type ref-name req-mod]
+                        { :error false
+                          :results (format-get-results (db/get-all-reference-values ref-name)) })
+
+    ":get_:by-date" (fn [req-type ref-name req-mod start-ts & ending-ts?]
+                        (let [start (ts->date start-ts)
+                              end (if (empty? ending-ts?) (date)
+                                                          (ts->date (first ending-ts?)))]
+                            { :error false
+                              :results (format-get-results
+                                        (db/get-reference-values-by-date ref-name start end)) }))
+
+    ":get_:by-seq"  (fn [req-type ref-name req-mod lim-str & off-str?]
+                        (let [lim (Integer/valueOf lim-str)
+                              off (if (empty? off-str?) 0 (Integer/valueOf (first off-str?)))]
+                            { :error false
+                              :results (format-get-results
+                                        (db/get-reference-values-by-seq ref-name lim off)) }))
 
     ":post_:abs"    (fn [req-type ref-name req-mod abs-val]
                         (db/put-raw-value! ref-name (Integer/valueOf abs-val))

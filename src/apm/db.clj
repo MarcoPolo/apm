@@ -118,8 +118,7 @@
         (fields :id :value :ts)
         (where-id :ref_id fn-id)
         (order :id :asc)
-        (exec)
-        (reverse)))
+        (exec)))
 
 (defn get-reference-values-by-seq
     "Given ref-id or a fullname returns a vector of the most recent lim values, offset off
