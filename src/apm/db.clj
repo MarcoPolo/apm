@@ -72,14 +72,29 @@
     created if it already exists"
     [fullname]
     (when-not (= fullname "")
-        (let [[path _] (path-split fullname)
-              parent-id (_create-reference-tree! path)]
-            (or (get-reference-id fullname)           ;First try to get the ref-id if it's already there
-                (insert-reference! fullname parent-id) ;If it's not there, try and put it (insert-reference returns id)
-                (get-reference-id fullname)))))       ;If something beat us to it (unlikely), get again
+        (let [[path _] (path-split fullname)]
 
-(defn get-reference-children
-    "Given a ref-id or a fullname returns a vector of all the children of that reference,
+            ;First try to get the ref-id if it's already there
+            (or (get-reference-id fullname)
+
+            ;If it's not there, try and put it
+                (insert-reference! fullname (_create-reference-tree! path))
+
+            ;If something beat us to it (unlikely), get again
+                (get-reference-id fullname)))))
+
+(defn- where-id
+    "Helps select against either a ref-id or ref-name"
+    [sel-ref id-sel fn-id]
+    (if-not (string? fn-id)
+            (where sel-ref {id-sel fn-id})
+            (where sel-ref {id-sel (subselect reference
+                                   (fields :id)
+                                   (limit 1)
+                                   (where {:fullname fn-id}))} )))
+
+(defn get-dir-children
+    "Given a ref-id or a fullname returns a vector of all the children of that dir,
     if it has any. Although a fullname can be given, a ref-id is preferred as the query
     for it is more efficient.
 
@@ -88,12 +103,55 @@
     [fn-id] ;fullname-or-id
     (-> (select* reference)
         (fields :id :fullname :isDir )
-        (#(if-not (string? fn-id)
-            (where %1 {:parent_id fn-id})
-            (where %1 {:parent_id (subselect reference
-                                      (fields :id)
-                                      (limit 1)
-                                      (where {:fullname fn-id}))} )))
+        (where-id :parent_id fn-id)
+        (exec)))
+
+(defn get-all-reference-values
+    [fn-id]
+    "Given ref-id or a fullname returns a vector of all the associated values.  Although a
+    fullname can be given, a ref-id is preferred as the query for it is more efficent.  The
+    values are returned ordered by ascending time.
+
+    Each item in the returned vector is a map with :id, :value, and :ts"
+    [fn-id]
+    (-> (select* value)
+        (fields :id :value :ts)
+        (where-id :ref_id fn-id)
+        (order :id :asc)
+        (exec)
+        (reverse)))
+
+(defn get-reference-values-by-seq
+    "Given ref-id or a fullname returns a vector of the most recent lim values, offset off
+    from the front of the list. Although a fullname can be given, a ref-id is preferred as
+    the query for it is more efficent. The values are returned ordered by ascending time.
+
+    Each item in the returned vector is a map with :id, :value, and :ts"
+    [fn-id lim off]
+    (-> (select* value)
+        (fields :id :value :ts)
+        (where-id :ref_id fn-id)
+        (order :id :desc)
+        (limit lim)
+        (offset off)
+        (exec)
+        (reverse)))
+
+(defn get-reference-values-by-date
+    "Given ref-id or a fullname returns a vector of the most recent values starting at time
+    start and ending at end (inclusive). Although a fullname can be given, a ref-id is
+    preferred as the query for it is more efficient. The values are returned ordered by
+    ascending time. start and end both should be Java.util.Dates (using date-clj makes this
+    super simple).
+
+    Each item in the returned vector is a map with :id, :value, and :ts"
+    [fn-id start end]
+    (-> (select* value)
+        (fields :id :value :ts)
+        (where-id :ref_id fn-id)
+        (where (and (>= :ts start)
+                    (<= :ts end)))
+        (order :id :asc)
         (exec)))
 
 (defworker put-raw-value!

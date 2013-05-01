@@ -80,11 +80,10 @@ In the case of negative numbers, `:inc/-5 == :dec/5` and `:inc/5 == :dec/-5`.
 ## Retrieving values
 
 In the topology section it is shown that performing a GET on a directory returns the directory's contents. Performing a
-GET on a reference returns that reference's values and their timestamps (as UNIX timestamps). The request should include
-boundaries on the dataset, if it doesn't the most recent 100 values for the reference will be returned.
+GET on a reference use `:all` returns that reference's values and their timestamps (as UNIX timestamps).
 
 ```
-> GET /dir/ref1
+> GET /dir/ref1/:all
 [ { "ts":..., "val":1 },
   { "ts":..., "val":2 },
   ... ]
@@ -100,33 +99,41 @@ Boundaries are specified either by date or sequence number. To specify by date:
 
 To specify by sequence number:
 ```
-> GET /dir/ref1/:by-seq/<offset>/<limit>
+> GET /dir/ref1/:by-seq/<limit>/<offset>
 ...
 ```
 
-If `<limit>` isn't specified it is assumed there is no limit. As mentioned before, if `<offset>` isn't specified it is
-assumed to be 100. Note that `<offset>` refers to offset from the most recent value and returns that value going forward.
+If `<limit>` isn't specified it is assumed there is no limit. If `<offset>` isn't specified it is
+assumed to be 0. 
 
 ## Example
 ```
 > POST /dir/ref1/:abs/5
 ok
 
-> GET /dir/ref1
+> GET /dir/ref1/:all
 [ { "ts":..., "val":5 } ]
 
 > POST /dir/ref1/:inc
 ok
 
-> GET /dir/ref1
+> GET /dir/ref1/:all
 [ { "ts":..., "val":5 },
   { "ts":..., "val":6 } ]
   
 > POST /dir/ref1/:abs/6
 ok
 
-> GET /dir/ref1
+> GET /dir/ref1/:all
 [ { "ts":..., "val":5 },
   { "ts":..., "val":6 },
+  { "ts":..., "val":6 } ]
+
+> GET /dir/ref1/:by-seq/2
+[ { "ts":..., "val":6 },
+  { "ts":..., "val":6 } ]
+
+> GET /dir/ref1/:by-seq/2/1
+[ { "ts":..., "val":5 },
   { "ts":..., "val":6 } ]
 ```
