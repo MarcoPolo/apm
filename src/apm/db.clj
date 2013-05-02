@@ -1,6 +1,7 @@
 (ns apm.db
     (:use korma.db korma.core)
-    (:require [lamina.core :as lam]))
+    (:require [lamina.core :as lam]
+              [apm.config :as conf]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Workers so mysql doesn't shit a brick
@@ -28,9 +29,7 @@
 ;;;; Actual db stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defdb apmdb (mysql { :db       "apm"
-                      :user     "apm"
-                      :password "need more pylons" }))
+(defdb apmdb (conf/get :mysql)))
 
 (declare reference value)
 
