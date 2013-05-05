@@ -53,10 +53,18 @@
     [filename]
     (spit filename example-config-str))
 
+(defn load-config-str
+    "Given a string, loads it in as configuration"
+    [config-str]
+    (->> config-str
+         (edn/read-string)
+         (reset! config-atom)))
+
 (defn load-config
     "Given a filename, loads it in as configuration"
     [filename]
-    (->> filename
+    (-> filename
          (slurp)
-         (edn/read-string)
-         (reset! config-atom)))
+         (load-config-str)))
+
+(load-config-str example-config-str)

@@ -29,7 +29,7 @@
 ;;;; Actual db stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defdb apmdb (conf/get :mysql)))
+(defdb apmdb (mysql (conf/get :mysql)))
 
 (declare reference value)
 

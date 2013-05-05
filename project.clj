@@ -8,6 +8,7 @@
                  [date-clj "1.0.1"]
                  [korma "0.3.0-RC5"]
                  [lamina "0.5.0-beta15"]
+                 [aleph "0.3.0-beta15"]
                  [mysql/mysql-connector-java "5.1.6"]
                  [ring/ring-core "1.1.8"]
                  [ring/ring-jetty-adapter "1.1.6"]
