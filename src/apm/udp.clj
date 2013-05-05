@@ -21,7 +21,7 @@
         (dispatch/dispatch :post uri-parts)))
 
 (defn recv-and-dispatch
-    [us]
+    [usock]
     (-> @(read-channel us)
         (:message)
         (bytes->string)

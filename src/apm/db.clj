@@ -1,7 +1,6 @@
 (ns apm.db
     (:use korma.db korma.core)
-    (:require [lamina.core :as lam]
-              [apm.config :as conf]))
+    (:require [lamina.core :as lam]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Workers so mysql doesn't shit a brick
@@ -29,19 +28,22 @@
 ;;;; Actual db stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defdb apmdb (mysql (conf/get :mysql)))
-
 (declare reference value)
 
-(defentity reference
-    (database apmdb)
-    (table :ref)
-    (has-many value)
-    (has-one reference {:fk :parent_id}))
+(defn init-db
+    "Pass in map with :host, :port, :db, :user, and :password"
+    [config]
+    (defdb apmdb (mysql config))
 
-(defentity value
-    (database apmdb)
-    (has-one reference))
+    (defentity reference
+        (database apmdb)
+        (table :ref)
+        (has-many value)
+        (has-one reference {:fk :parent_id}))
+
+    (defentity value
+        (database apmdb)
+        (has-one reference)))
 
 (defn- path-split [path]
     (rest (re-find #"(.*?)([^\/]*\/?)$" path)))
