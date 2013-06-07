@@ -1,7 +1,8 @@
 (ns apm.handler
   (:use ring.adapter.jetty
         ring.middleware.reload)
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as s]
+            [apm.dispatch :as dispatch]))
 
 (defn str-keyword? [string]
   (re-matches #"^:.*" string))
@@ -24,7 +25,8 @@
 
 (defn handler [request]
   (let [uri-parts (rest (s/split (:uri request) #"/"))
-        request-method (:request-method request)]
+        request-method (:request-method request)
+        result (dispatch/dispatch request-method uri-parts)]
     {:status 200
         :headers {"Content-Type" "text/html"}
         :body (str 
@@ -32,7 +34,8 @@
                 "<br/> "
                 "The Request method was: " request-method 
                 "<br/> "
-                "The parsed uri is: " (parse-uri uri-parts))}))
+                "The parsed uri is: " (parse-uri uri-parts)
+                result)}))
 
 (def app 
   (wrap-reload #'handler))

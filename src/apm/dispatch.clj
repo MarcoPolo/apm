@@ -117,3 +117,7 @@
     [req-type uri-parts]
     (-> (map-request req-type uri-parts)
         (actually-dispatch)))
+
+(db/init-db
+ {:db   "apm" :user "root"})
+
